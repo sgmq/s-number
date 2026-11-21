@@ -4,6 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#14181f" media="(prefers-color-scheme: dark)" />
 <link rel="icon" href="data:," />
 <title>数独ゲーム</title>
 <style>
@@ -127,7 +132,7 @@
   /* ---------- board ---------- */
   .board-wrap{display:flex;justify-content:center;align-items:center;flex:1 1 auto;min-height:0;padding:4px 0 6px;overflow:hidden}
   .board{
-    width:min(100%, calc(100dvh - 396px));
+    width:min(100%, calc(100dvh - 350px));
     max-height:100%;
     min-width:0;
     aspect-ratio:1/1;background:var(--cell-bg);
@@ -137,15 +142,15 @@
     flex-shrink:1;
   }
   @media (max-height:700px){
-    .board{width:min(100%, calc(100dvh - 378px))}
-    .pad button{height:60px;min-height:60px}
-    .pad button .num{font-size:24px}
-    .pad-row.bottom{margin-top:-20px}
+    .board{width:min(100%, calc(100dvh - 332px))}
+    .pad button{height:50px;min-height:50px}
+    .pad button .num{font-size:21px}
+    .pad-row.bottom{margin-top:-17px}
   }
   @media (max-height:600px){
-    .board{width:min(100%, calc(100dvh - 366px))}
-    .pad button{height:54px;min-height:54px}
-    .pad button .num{font-size:22px}
+    .board{width:min(100%, calc(100dvh - 320px))}
+    .pad button{height:46px;min-height:46px}
+    .pad button .num{font-size:19px}
   }
   .cell{
     position:relative;display:flex;align-items:center;justify-content:center;
@@ -194,14 +199,14 @@
   .pad{display:flex;flex-direction:column;margin-top:2px;padding:2px 1px 4px}
   .pad-row{display:flex;gap:7px}
   .pad-row.top{position:relative;z-index:2}
-  .pad-row.bottom{position:relative;z-index:1;margin-top:-24px;padding:0 calc(10% + 1px)}
+  .pad-row.bottom{position:relative;z-index:1;margin-top:-20px;padding:0 calc(10% + 1px)}
   /* 家形はボタン本体の clip-path で描く（当たり判定も家形に沿うので、段を
      重ねても三角の横の透明部分は下の段のボタンにタップが抜ける）。
      枠線は clip-path では描けないため、本体の濃色を外形、内側の .face を
      2px 小さい同じ家形にして、色の差で枠相当の輪郭を作る。 */
   .pad button{
     position:relative;flex:1 1 0;min-width:0;
-    height:68px;min-height:68px;
+    height:56px;min-height:56px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
     background:var(--line-strong);
     transition:transform .08s,opacity .12s,background .12s;
@@ -212,10 +217,10 @@
   }
   .pad button.house-down,.pad button.house-down .face{clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)}
   .pad button.house-up,.pad button.house-up .face{clip-path:polygon(50% 0,100% 40%,100% 100%,0 100%,0 40%)}
-  .pad button.house-down{padding:2px 0 20px}
-  .pad button.house-up{padding:20px 0 2px}
-  .pad button .num{position:relative;z-index:1;font-size:27px;font-weight:800;line-height:1.05;color:var(--accent)}
-  .pad button .rest{position:relative;z-index:1;font-size:10px;color:var(--ink-soft);font-variant-numeric:tabular-nums;line-height:1.15}
+  .pad button.house-down{padding:2px 0 16px}
+  .pad button.house-up{padding:16px 0 2px}
+  .pad button .num{position:relative;z-index:1;font-size:24px;font-weight:800;line-height:1.05;color:var(--accent)}
+  .pad button .rest{position:relative;z-index:1;font-size:9px;color:var(--ink-soft);font-variant-numeric:tabular-nums;line-height:1.15}
   .pad button:focus-visible .face{background:var(--hl-same)}
   .pad button.armed{background:var(--accent)}
   .pad button.armed .face{background:var(--accent)}
@@ -225,7 +230,6 @@
   .pad button.used .face{background:var(--pad-used)}
   .pad button.used .num{color:var(--pad-used-ink)}
   .pad button.used .rest{color:var(--pad-used-ink)}
-  .hintline{min-height:18px;text-align:center;font-size:12.5px;color:var(--ink-soft)}
   /* ---------- clear overlay ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(10,14,20,.55);backdrop-filter:blur(3px);
@@ -287,7 +291,6 @@
     <button class="act" id="hintBtn" type="button"><span class="ic">💡</span>ヒント</button>
     <button class="act" id="firstBtn" type="button" aria-pressed="false"><span class="ic">🔢</span>数字先行<span class="badge">ON</span></button>
   </div>
-  <div class="hintline" id="hintline">マスをタップして選んでから、数字をタップして入力します</div>
 </div>
 
 <div class="app" id="statsView" style="display:none">
@@ -313,7 +316,7 @@
     <div id="levelCards" style="display:flex;flex-direction:column;gap:10px"></div>
 
     <div class="stats-foot">
-      <p class="stats-note">※ 成績はこの端末のブラウザ（localStorage）に保存されます。ブラウザのデータを消去すると記録も消えます。</p>
+      <p class="stats-note">※ 成績はこの端末のブラウザ（localStorage）に保存されます。ブラウザのデータを消去すると記録も消えます。<br>※ Safariでは「ホーム画面に追加」してから開くと、アドレスバーなしの全画面で遊べます。</p>
       <button class="reset-btn" id="resetBtn" type="button">記録をリセット</button>
     </div>
   </div>
@@ -360,7 +363,6 @@
   var mistakesEl = document.getElementById("mistakes");
   var hintsEl = document.getElementById("hints");
   var progressEl = document.getElementById("progress");
-  var hintlineEl = document.getElementById("hintline");
   var overlayEl = document.getElementById("overlay");
   var loadingEl = document.getElementById("loading");
 
@@ -586,23 +588,9 @@
       timerEl.textContent = "00:00";
       overlayEl.classList.remove("show");
       loadingEl.classList.remove("show");
-      setHintline();
       render();
       startTimer();
     }, 30);
-  }
-
-  function setHintline(){
-    if (finished) { hintlineEl.textContent = "クリア済みです。「次の問題へ」から新しい問題をどうぞ"; return; }
-    if (numberFirst) {
-      hintlineEl.textContent = armedNumber
-        ? "数字 " + armedNumber + " を選んでいます。入れたいマスをタップしてください"
-        : "数字先行モード：先に数字を選んでからマスをタップします";
-    } else if (memoMode) {
-      hintlineEl.textContent = "メモモード：選んだマスに小さく候補数字を書き込めます";
-    } else {
-      hintlineEl.textContent = "マスをタップして選んでから、数字をタップして入力します";
-    }
   }
 
   /* ---------- input ---------- */
@@ -629,18 +617,10 @@
     if (finished) return;
     if (numberFirst) {
       armedNumber = (armedNumber === num) ? 0 : num;
-      setHintline();
       render();
       return;
     }
-    if (selected < 0) {
-      hintlineEl.textContent = "先に入力したいマスをタップしてください";
-      return;
-    }
-    if (given[selected]) {
-      hintlineEl.textContent = "最初から入っている数字は変更できません";
-      return;
-    }
+    if (selected < 0 || given[selected]) return;
     placeNumber(selected, num, true);
   }
 
@@ -713,7 +693,6 @@
     document.getElementById("clearTime").textContent = fmt(seconds);
     document.getElementById("clearMistakes").textContent = mistakes;
     document.getElementById("clearDiff").textContent = DIFF_LABEL[difficulty];
-    setHintline();
     render();
     setTimeout(function(){ overlayEl.classList.add("show"); }, 350);
   }
@@ -781,14 +760,12 @@
     memoMode = !memoMode;
     this.classList.toggle("on", memoMode);
     this.setAttribute("aria-pressed", memoMode);
-    setHintline();
   });
   document.getElementById("firstBtn").addEventListener("click", function(){
     numberFirst = !numberFirst;
     armedNumber = 0;
     this.classList.toggle("on", numberFirst);
     this.setAttribute("aria-pressed", numberFirst);
-    setHintline();
     render();
   });
   document.getElementById("eraseBtn").addEventListener("click", function(){
