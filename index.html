@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>数独ゲーム</title>
+<style>
+  :root{
+    --bg:#f4f1ea;
+    --surface:#ffffff;
+    --ink:#1c2430;
+    --ink-soft:#5b6572;
+    --line:#c9c2b4;
+    --line-strong:#1c2430;
+    --cell-bg:#ffffff;
+    --given:#1c2430;
+    --user:#1668b4;
+    --wrong:#d92d20;
+    --wrong-bg:#fdecea;
+    --hl-peer:#e8eef5;
+    --hl-same:#cfe3f7;
+    --hl-selected:#ffd166;
+    --accent:#1668b4;
+    --accent-ink:#ffffff;
+    --pad-bg:#ffffff;
+    --pad-used:#e9e6de;
+    --pad-used-ink:#a8a294;
+    --btn-bg:#ffffff;
+    --seg-bg:#e7e2d6;
+    --shadow:0 10px 30px rgba(28,36,48,.14);
+    --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#14181f;
+      --surface:#1e242e;
+      --ink:#eef1f5;
+      --ink-soft:#9aa6b5;
+      --line:#3a4350;
+      --line-strong:#c8d2de;
+      --cell-bg:#1e242e;
+      --given:#eef1f5;
+      --user:#6db3f2;
+      --wrong:#ff7a6e;
+      --wrong-bg:#3d2222;
+      --hl-peer:#28313f;
+      --hl-same:#2e4a68;
+      --hl-selected:#8a6d1f;
+      --accent:#2f8fdd;
+      --pad-bg:#232a35;
+      --pad-used:#1a1f27;
+      --pad-used-ink:#5f6b7a;
+      --btn-bg:#232a35;
+      --seg-bg:#232a35;
+      --shadow:0 10px 30px rgba(0,0,0,.45);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,sans-serif;
+    touch-action:manipulation;overscroll-behavior:none;
+    -webkit-user-select:none;user-select:none;
+  }
+  button{font-family:inherit;min-height:44px;cursor:pointer;border:none;background:none;color:inherit}
+  button:active{transform:scale(.96)}
+  .app{
+    height:100dvh;max-width:520px;margin:0 auto;
+    display:flex;flex-direction:column;
+    padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));
+    gap:8px;
+  }
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  h1{font-size:20px;margin:0;letter-spacing:.04em;font-weight:800}
+  h1 span{color:var(--accent)}
+  .new-btn{
+    background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:14px;
+    padding:0 16px;border-radius:999px;min-height:40px;
+    box-shadow:0 3px 10px rgba(22,104,180,.3);transition:transform .08s;
+    white-space:nowrap;
+  }
+  .head-btns{display:flex;gap:6px;align-items:center}
+  .stats-btn{
+    background:var(--btn-bg);border:1.5px solid var(--line);color:var(--ink);font-weight:700;font-size:14px;
+    padding:0 14px;border-radius:999px;min-height:40px;white-space:nowrap;transition:transform .08s;
+  }
+  /* ---------- stats view ---------- */
+  .stats-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:4px}
+  .stat-card{background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+  .stat-card h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+  .stat-card h3 .plays{margin-left:auto;font-size:12px;color:var(--ink-soft);font-weight:600}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+  .stat-grid .cellstat b{display:block;font-size:19px;font-variant-numeric:tabular-nums;line-height:1.2}
+  .stat-grid .cellstat span{font-size:11px;color:var(--ink-soft)}
+  .overall-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .overall-grid .cellstat b{display:block;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+  .overall-grid .cellstat span{font-size:11px;color:var(--ink-soft)}
+  .streak-now{color:var(--accent)}
+  .empty-note{color:var(--ink-soft);font-size:13px;text-align:center;padding:6px 0 0;margin:0}
+  .stats-foot{margin-top:auto;padding-top:6px}
+  .stats-note{font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 10px}
+  .reset-btn{
+    width:100%;background:var(--btn-bg);border:1.5px solid var(--wrong);color:var(--wrong);
+    border-radius:12px;font-weight:700;font-size:14px;min-height:46px;
+  }
+  .danger-btn{
+    background:var(--wrong);color:#fff;font-weight:700;font-size:15px;
+    padding:0 26px;border-radius:999px;min-height:48px;white-space:nowrap;
+  }
+  .card .btn-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
+  /* ---------- difficulty ---------- */
+  .seg{display:flex;background:var(--seg-bg);border-radius:999px;padding:3px;gap:2px}
+  .seg button{
+    flex:1;border-radius:999px;font-size:14px;font-weight:700;color:var(--ink-soft);
+    min-height:38px;padding:0 6px;transition:background .15s,color .15s;
+  }
+  .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 5px rgba(0,0,0,.16)}
+  /* ---------- status ---------- */
+  .status{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--ink-soft);padding:0 2px}
+  .status b{color:var(--ink);font-variant-numeric:tabular-nums;font-size:15px}
+  .status .item{display:flex;align-items:center;gap:5px}
+  .dot-mistake b{color:var(--wrong)}
+  /* ---------- board ---------- */
+  .board-wrap{display:flex;justify-content:center;align-items:center;flex:1;min-height:0}
+  .board{
+    width:min(100%, calc(100dvh - 308px));
+    min-width:0;
+    aspect-ratio:1/1;background:var(--cell-bg);
+    display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);
+    border:2.5px solid var(--line-strong);border-radius:6px;overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  @media (max-height:640px){ .board{width:min(100%, calc(100dvh - 288px))} }
+  .cell{
+    position:relative;display:flex;align-items:center;justify-content:center;
+    border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    font-size:clamp(18px,6.2vw,30px);font-weight:600;line-height:1;
+    background:var(--cell-bg);transition:background .1s;cursor:pointer;padding:0;min-height:0;
+  }
+  .cell:nth-child(9n){border-right:none}
+  .cell:nth-child(n+73){border-bottom:none}
+  .cell.br{border-right:2.5px solid var(--line-strong)}
+  .cell.bb{border-bottom:2.5px solid var(--line-strong)}
+  .cell.given{font-weight:800;color:var(--given)}
+  .cell.user{color:var(--user)}
+  .cell.peer{background:var(--hl-peer)}
+  .cell.same{background:var(--hl-same)}
+  .cell.wrong{color:var(--wrong);background:var(--wrong-bg)}
+  .cell.selected{background:var(--hl-selected)!important;box-shadow:inset 0 0 0 2px var(--line-strong)}
+  .cell.pop{animation:pop .18s ease}
+  @keyframes pop{0%{transform:scale(.82)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+  @media (prefers-reduced-motion: reduce){ .cell.pop{animation:none} button:active{transform:none} }
+  .notes{
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    width:100%;height:100%;padding:2px;
+  }
+  .notes span{display:flex;align-items:center;justify-content:center;font-size:clamp(8px,2.4vw,12px);color:var(--ink-soft);font-weight:600;line-height:1}
+  /* ---------- actions ---------- */
+  .actions{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .act{
+    background:var(--btn-bg);border:1.5px solid var(--line);border-radius:12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    min-height:52px;padding:5px 2px;font-size:11px;font-weight:700;color:var(--ink-soft);
+    transition:background .12s,color .12s,border-color .12s,transform .08s;position:relative;
+  }
+  .act .ic{font-size:19px;line-height:1.15}
+  .act.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .act:disabled{opacity:.35}
+  .act .badge{
+    position:absolute;top:4px;right:6px;font-size:9px;font-weight:800;
+    background:var(--wrong);color:#fff;border-radius:999px;padding:1px 5px;display:none;
+  }
+  .act.on .badge{display:block;background:#fff;color:var(--accent)}
+  /* ---------- number pad ---------- */
+  .pad{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+  .pad button{
+    background:var(--pad-bg);border:1.5px solid var(--line);border-radius:12px;
+    min-height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+    transition:background .12s,transform .08s,opacity .12s;padding:4px 0 3px;
+  }
+  .pad button .num{font-size:24px;font-weight:800;line-height:1.05;color:var(--accent)}
+  .pad button .rest{font-size:10px;color:var(--ink-soft);font-variant-numeric:tabular-nums;line-height:1.1}
+  .pad button.armed{background:var(--accent);border-color:var(--accent)}
+  .pad button.armed .num{color:#fff}
+  .pad button.armed .rest{color:rgba(255,255,255,.85)}
+  .pad button.used{opacity:.45;background:var(--pad-used)}
+  .pad button.used .num{color:var(--pad-used-ink)}
+  .hintline{min-height:18px;text-align:center;font-size:12.5px;color:var(--ink-soft)}
+  /* ---------- clear overlay ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(10,14,20,.55);backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;padding:20px;z-index:10;
+  }
+  .overlay.show{display:flex}
+  .card{
+    background:var(--surface);color:var(--ink);border-radius:20px;padding:28px 24px 22px;
+    width:100%;max-width:340px;text-align:center;box-shadow:var(--shadow);
+    animation:rise .25s ease;
+  }
+  @keyframes rise{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+  .card .emoji{font-size:46px;line-height:1}
+  .card h2{margin:10px 0 4px;font-size:24px}
+  .card p{margin:0 0 6px;color:var(--ink-soft);font-size:14px;line-height:1.6}
+  .card .stats{display:flex;justify-content:center;gap:22px;margin:14px 0 20px}
+  .card .stats div b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+  .card .stats div span{font-size:11px;color:var(--ink-soft)}
+  .card .new-btn{min-height:48px;padding:0 26px;font-size:15px}
+  .card .sub-btn{display:block;margin:10px auto 0;color:var(--ink-soft);font-size:13px;text-decoration:underline;min-height:36px}
+  .loading{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(10,14,20,.35);z-index:11;color:#fff;font-weight:700;font-size:15px;letter-spacing:.06em;
+  }
+  .loading.show{display:flex}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>数独<span> Sudoku</span></h1>
+    <div class="head-btns">
+      <button class="stats-btn" id="statsBtn" type="button">📊 成績</button>
+      <button class="new-btn" id="newTop" type="button">＋ 新しいゲーム</button>
+    </div>
+  </header>
+
+  <div class="seg" role="group" aria-label="難易度">
+    <button type="button" data-diff="easy" class="on">かんたん</button>
+    <button type="button" data-diff="normal">ふつう</button>
+    <button type="button" data-diff="hard">むずかしい</button>
+  </div>
+
+  <div class="status">
+    <div class="item">⏱ <b id="timer">00:00</b></div>
+    <div class="item dot-mistake">ミス <b id="mistakes">0</b> 回</div>
+    <div class="item">ヒント <b id="hints">0</b> 回</div>
+    <div class="item">進み具合 <b id="progress">0%</b></div>
+  </div>
+
+  <div class="board-wrap"><div class="board" id="board" role="grid" aria-label="数独の盤面"></div></div>
+
+  <div class="actions">
+    <button class="act" id="undoBtn" type="button"><span class="ic">↩️</span>もどす</button>
+    <button class="act" id="eraseBtn" type="button"><span class="ic">⌫</span>消す</button>
+    <button class="act" id="memoBtn" type="button" aria-pressed="false"><span class="ic">✏️</span>メモ<span class="badge">ON</span></button>
+    <button class="act" id="hintBtn" type="button"><span class="ic">💡</span>ヒント</button>
+    <button class="act" id="firstBtn" type="button" aria-pressed="false"><span class="ic">🔢</span>数字先行<span class="badge">ON</span></button>
+  </div>
+
+  <div class="pad" id="pad" aria-label="数字パッド"></div>
+  <div class="hintline" id="hintline">マスをタップして選んでから、数字をタップして入力します</div>
+</div>
+
+<div class="app" id="statsView" style="display:none">
+  <header>
+    <h1>成績<span> Stats</span></h1>
+    <button class="stats-btn" id="backBtn" type="button">← もどる</button>
+  </header>
+
+  <div class="stats-scroll">
+    <div class="stat-card">
+      <h3>全体の記録</h3>
+      <div class="overall-grid">
+        <div class="cellstat"><b id="ovClears">0</b><span>総クリア数</span></div>
+        <div class="cellstat"><b id="ovPlayTime">0:00</b><span>総プレイ時間</span></div>
+        <div class="cellstat"><b class="streak-now" id="ovStreak">0</b><span>現在の連勝数</span></div>
+        <div class="cellstat"><b id="ovBestStreak">0</b><span>最長連勝記録</span></div>
+        <div class="cellstat"><b id="ovHints">0</b><span>ヒント使用回数（累計）</span></div>
+        <div class="cellstat"><b id="ovPlays">0</b><span>総プレイ回数</span></div>
+      </div>
+      <p class="empty-note" id="ovEmpty" style="display:none">まだクリア記録がありません。まずは「かんたん」を1問クリアしてみましょう。</p>
+    </div>
+
+    <div id="levelCards" style="display:flex;flex-direction:column;gap:10px"></div>
+
+    <div class="stats-foot">
+      <p class="stats-note">※ 成績はこの端末のブラウザ（localStorage）に保存されます。ブラウザのデータを消去すると記録も消えます。</p>
+      <button class="reset-btn" id="resetBtn" type="button">記録をリセット</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <div class="emoji">🎉</div>
+    <h2>クリア！</h2>
+    <p id="clearText">お見事です。盤面がすべて埋まりました。</p>
+    <div class="stats">
+      <div><b id="clearTime">00:00</b><span>タイム</span></div>
+      <div><b id="clearMistakes">0</b><span>ミス</span></div>
+      <div><b id="clearDiff">かんたん</b><span>難易度</span></div>
+    </div>
+    <button class="new-btn" id="newClear" type="button">次の問題へ</button>
+    <button class="sub-btn" id="closeClear" type="button">盤面を見る</button>
+  </div>
+</div>
+
+<div class="overlay" id="resetOverlay">
+  <div class="card">
+    <div class="emoji">🗑️</div>
+    <h2>記録をリセットしますか？</h2>
+    <p>クリア回数・タイム・連勝などの成績がすべて消え、元に戻せません。</p>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="danger-btn" id="resetYes" type="button">リセットする</button>
+      <button class="stats-btn" id="resetNo" type="button" style="min-height:48px;padding:0 22px">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading" id="loading">問題を作成中…</div>
+
+<script>
+(function(){
+  "use strict";
+  var GIVENS = { easy: 42, normal: 34, hard: 28 };
+  var DIFF_LABEL = { easy: "かんたん", normal: "ふつう", hard: "むずかしい" };
+
+  var boardEl = document.getElementById("board");
+  var padEl = document.getElementById("pad");
+  var timerEl = document.getElementById("timer");
+  var mistakesEl = document.getElementById("mistakes");
+  var hintsEl = document.getElementById("hints");
+  var progressEl = document.getElementById("progress");
+  var hintlineEl = document.getElementById("hintline");
+  var overlayEl = document.getElementById("overlay");
+  var loadingEl = document.getElementById("loading");
+
+  var cells = [];
+  var padBtns = [];
+  var i, n;
+
+  for (i = 0; i < 81; i++) {
+    (function(idx){
+      var r = Math.floor(idx / 9), c = idx % 9;
+      var d = document.createElement("button");
+      d.type = "button";
+      d.className = "cell" + (c === 2 || c === 5 ? " br" : "") + (r === 2 || r === 5 ? " bb" : "");
+      d.setAttribute("role", "gridcell");
+      d.setAttribute("aria-label", (r + 1) + "行" + (c + 1) + "列");
+      d.addEventListener("click", function(){ onCellTap(idx); });
+      boardEl.appendChild(d);
+      cells.push(d);
+    })(i);
+  }
+  for (n = 1; n <= 9; n++) {
+    (function(num){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = '<span class="num">' + num + '</span><span class="rest">あと9</span>';
+      b.setAttribute("aria-label", "数字" + num);
+      b.addEventListener("click", function(){ onPadTap(num); });
+      padEl.appendChild(b);
+      padBtns.push(b);
+    })(n);
+  }
+
+  /* ---------- solver / generator ---------- */
+  function shuffle(a){
+    for (var k = a.length - 1; k > 0; k--) {
+      var j = Math.floor(Math.random() * (k + 1));
+      var t = a[k]; a[k] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function boxOf(r, c){ return Math.floor(r / 3) * 3 + Math.floor(c / 3); }
+
+  function generateFull(){
+    var b = new Array(81).fill(0);
+    var rows = new Array(9).fill(0), cols = new Array(9).fill(0), boxes = new Array(9).fill(0);
+    function fill(pos){
+      if (pos === 81) return true;
+      var r = Math.floor(pos / 9), c = pos % 9, bx = boxOf(r, c);
+      var used = rows[r] | cols[c] | boxes[bx];
+      var cand = shuffle([1,2,3,4,5,6,7,8,9]);
+      for (var k = 0; k < 9; k++) {
+        var v = cand[k], bit = 1 << v;
+        if (!(used & bit)) {
+          b[pos] = v; rows[r] |= bit; cols[c] |= bit; boxes[bx] |= bit;
+          if (fill(pos + 1)) return true;
+          b[pos] = 0; rows[r] &= ~bit; cols[c] &= ~bit; boxes[bx] &= ~bit;
+        }
+      }
+      return false;
+    }
+    fill(0);
+    return b;
+  }
+
+  function countSolutions(b, limit){
+    var rows = new Array(9).fill(0), cols = new Array(9).fill(0), boxes = new Array(9).fill(0);
+    var empties = [];
+    var p, r, c, v;
+    for (p = 0; p < 81; p++) {
+      v = b[p];
+      if (v === 0) { empties.push(p); continue; }
+      r = Math.floor(p / 9); c = p % 9;
+      var bit = 1 << v;
+      rows[r] |= bit; cols[c] |= bit; boxes[boxOf(r, c)] |= bit;
+    }
+    var count = 0;
+    function solve(){
+      if (count >= limit) return;
+      if (empties.length === 0) { count++; return; }
+      // MRV: pick the empty cell with fewest candidates
+      var best = -1, bestMask = 0, bestCount = 10;
+      for (var k = 0; k < empties.length; k++) {
+        var pos = empties[k];
+        var rr = Math.floor(pos / 9), cc = pos % 9;
+        var avail = ~(rows[rr] | cols[cc] | boxes[boxOf(rr, cc)]) & 0x3FE;
+        var cnt = 0, m = avail;
+        while (m) { m &= m - 1; cnt++; }
+        if (cnt === 0) return;
+        if (cnt < bestCount) { bestCount = cnt; best = k; bestMask = avail; if (cnt === 1) break; }
+      }
+      var pos2 = empties[best];
+      empties.splice(best, 1);
+      var r2 = Math.floor(pos2 / 9), c2 = pos2 % 9, bx2 = boxOf(r2, c2);
+      var mask = bestMask;
+      while (mask) {
+        var bit2 = mask & -mask; mask &= mask - 1;
+        rows[r2] |= bit2; cols[c2] |= bit2; boxes[bx2] |= bit2;
+        solve();
+        rows[r2] &= ~bit2; cols[c2] &= ~bit2; boxes[bx2] &= ~bit2;
+        if (count >= limit) break;
+      }
+      empties.splice(best, 0, pos2);
+    }
+    solve();
+    return count;
+  }
+
+  function generatePuzzle(diff){
+    var solution = generateFull();
+    var puzzle = solution.slice();
+    var target = 81 - GIVENS[diff];
+    var removed = 0;
+    var order = shuffle(Array.from({length: 81}, function(_, k){ return k; }));
+    for (var pass = 0; pass < 2 && removed < target; pass++) {
+      for (var k = 0; k < order.length && removed < target; k++) {
+        var idx = order[k];
+        if (puzzle[idx] === 0) continue;
+        var backup = puzzle[idx];
+        puzzle[idx] = 0;
+        if (countSolutions(puzzle, 2) !== 1) { puzzle[idx] = backup; }
+        else { removed++; }
+      }
+    }
+    return { puzzle: puzzle, solution: solution };
+  }
+
+  /* ---------- game state ---------- */
+  var difficulty = "easy";
+  var solution = [], given = [], board = [], notes = [];
+  var selected = -1;
+  var memoMode = false;
+  var numberFirst = false;
+  var armedNumber = 0;      // number-first: chosen number waiting for a cell
+  var mistakes = 0, hintCount = 0;
+  var seconds = 0, timerId = null, finished = false;
+  var history = [];
+  var started = false;   // a game has been generated at least once
+
+  /* ---------- stats (localStorage) ---------- */
+  var STATS_KEY = "sudoku-stats-v1";
+  function blankStats(){
+    function per(){ return { plays: 0, clears: 0, clearTimeSum: 0, bestTime: 0, mistakeSum: 0, hintSum: 0 }; }
+    return {
+      per: { easy: per(), normal: per(), hard: per() },
+      totalPlaySec: 0, streak: 0, bestStreak: 0, totalHints: 0
+    };
+  }
+  var stats = blankStats();
+  try {
+    var raw = localStorage.getItem(STATS_KEY);
+    if (raw) {
+      var parsed = JSON.parse(raw);
+      var base = blankStats();
+      ["easy", "normal", "hard"].forEach(function(d){
+        if (parsed.per && parsed.per[d]) {
+          for (var k in base.per[d]) if (typeof parsed.per[d][k] === "number") base.per[d][k] = parsed.per[d][k];
+        }
+      });
+      ["totalPlaySec", "streak", "bestStreak", "totalHints"].forEach(function(k2){
+        if (typeof parsed[k2] === "number") base[k2] = parsed[k2];
+      });
+      stats = base;
+    }
+  } catch (e) { /* storage unavailable: play on without saving */ }
+  function saveStats(){
+    try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch (e) {}
+  }
+
+  function fmt(s){
+    var m = Math.floor(s / 60), ss = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (ss < 10 ? "0" : "") + ss;
+  }
+  function startTimer(){
+    stopTimer();
+    timerId = setInterval(function(){ seconds++; timerEl.textContent = fmt(seconds); }, 1000);
+  }
+  function stopTimer(){ if (timerId) { clearInterval(timerId); timerId = null; } }
+
+  function snapshot(){
+    history.push({
+      board: board.slice(),
+      notes: notes.map(function(s){ return s.slice(); })
+    });
+    if (history.length > 200) history.shift();
+    document.getElementById("undoBtn").disabled = false;
+  }
+
+  function newGame(diff, initial){
+    // abandoning an unfinished game: bank its elapsed time and break the streak
+    if (!initial && started && !finished) {
+      stats.totalPlaySec += seconds;
+      stats.streak = 0;
+      saveStats();
+    }
+    difficulty = diff;
+    loadingEl.classList.add("show");
+    // let the loading label paint before the (brief) generation work
+    setTimeout(function(){
+      var g = generatePuzzle(diff);
+      started = true;
+      stats.per[diff].plays++;
+      saveStats();
+      solution = g.solution;
+      board = g.puzzle.slice();
+      given = g.puzzle.map(function(v){ return v !== 0; });
+      notes = Array.from({length: 81}, function(){ return []; });
+      selected = -1; armedNumber = 0;
+      mistakes = 0; hintCount = 0; seconds = 0; finished = false;
+      history = [];
+      document.getElementById("undoBtn").disabled = true;
+      timerEl.textContent = "00:00";
+      overlayEl.classList.remove("show");
+      loadingEl.classList.remove("show");
+      setHintline();
+      render();
+      startTimer();
+    }, 30);
+  }
+
+  function setHintline(){
+    if (finished) { hintlineEl.textContent = "クリア済みです。「次の問題へ」から新しい問題をどうぞ"; return; }
+    if (numberFirst) {
+      hintlineEl.textContent = armedNumber
+        ? "数字 " + armedNumber + " を選んでいます。入れたいマスをタップしてください"
+        : "数字先行モード：先に数字を選んでからマスをタップします";
+    } else if (memoMode) {
+      hintlineEl.textContent = "メモモード：選んだマスに小さく候補数字を書き込めます";
+    } else {
+      hintlineEl.textContent = "マスをタップして選んでから、数字をタップして入力します";
+    }
+  }
+
+  /* ---------- input ---------- */
+  function peersOf(idx){
+    var r = Math.floor(idx / 9), c = idx % 9, res = [];
+    for (var k = 0; k < 9; k++) { res.push(r * 9 + k); res.push(k * 9 + c); }
+    var br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+    for (var dr = 0; dr < 3; dr++) for (var dc = 0; dc < 3; dc++) res.push((br + dr) * 9 + (bc + dc));
+    return res;
+  }
+
+  function onCellTap(idx){
+    if (finished) return;
+    if (numberFirst && armedNumber && !given[idx]) {
+      selected = idx;
+      placeNumber(idx, armedNumber, true);
+      return;
+    }
+    selected = idx;
+    render();
+  }
+
+  function onPadTap(num){
+    if (finished) return;
+    if (numberFirst) {
+      armedNumber = (armedNumber === num) ? 0 : num;
+      setHintline();
+      render();
+      return;
+    }
+    if (selected < 0) {
+      hintlineEl.textContent = "先に入力したいマスをタップしてください";
+      return;
+    }
+    if (given[selected]) {
+      hintlineEl.textContent = "最初から入っている数字は変更できません";
+      return;
+    }
+    placeNumber(selected, num, true);
+  }
+
+  function placeNumber(idx, num, animate){
+    if (memoMode && !numberFirst) {
+      snapshot();
+      var arr = notes[idx];
+      var at = arr.indexOf(num);
+      if (at >= 0) arr.splice(at, 1); else { arr.push(num); arr.sort(); }
+      if (board[idx] !== 0) board[idx] = 0;
+      render();
+      return;
+    }
+    if (memoMode && numberFirst) {
+      // in number-first + memo, tapping cells writes memo numbers
+      snapshot();
+      var a2 = notes[idx];
+      var at2 = a2.indexOf(num);
+      if (at2 >= 0) a2.splice(at2, 1); else { a2.push(num); a2.sort(); }
+      if (board[idx] !== 0) board[idx] = 0;
+      render();
+      return;
+    }
+    if (board[idx] === num) {
+      // tapping the same number again clears the cell
+      snapshot();
+      board[idx] = 0;
+      render();
+      return;
+    }
+    snapshot();
+    board[idx] = num;
+    notes[idx] = [];
+    // remove this number from peers' memos
+    peersOf(idx).forEach(function(p){
+      var at = notes[p].indexOf(num);
+      if (at >= 0) notes[p].splice(at, 1);
+    });
+    if (num !== solution[idx]) {
+      mistakes++;
+      if (navigator.vibrate) navigator.vibrate(60);
+    } else if (navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+    render();
+    if (animate) {
+      cells[idx].classList.remove("pop");
+      void cells[idx].offsetWidth;
+      cells[idx].classList.add("pop");
+    }
+    checkClear();
+  }
+
+  function checkClear(){
+    for (var k = 0; k < 81; k++) if (board[k] !== solution[k]) return;
+    finished = true;
+    stopTimer();
+    // record the clear
+    var st = stats.per[difficulty];
+    st.clears++;
+    st.clearTimeSum += seconds;
+    if (st.bestTime === 0 || seconds < st.bestTime) st.bestTime = seconds;
+    st.mistakeSum += mistakes;
+    st.hintSum += hintCount;
+    stats.totalPlaySec += seconds;
+    stats.totalHints += hintCount;
+    stats.streak++;
+    if (stats.streak > stats.bestStreak) stats.bestStreak = stats.streak;
+    saveStats();
+    document.getElementById("clearTime").textContent = fmt(seconds);
+    document.getElementById("clearMistakes").textContent = mistakes;
+    document.getElementById("clearDiff").textContent = DIFF_LABEL[difficulty];
+    setHintline();
+    render();
+    setTimeout(function(){ overlayEl.classList.add("show"); }, 350);
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    var selVal = selected >= 0 ? board[selected] : 0;
+    var focusNum = numberFirst && armedNumber ? armedNumber : selVal;
+    var selR = selected >= 0 ? Math.floor(selected / 9) : -1;
+    var selC = selected >= 0 ? selected % 9 : -1;
+    var selB = selected >= 0 ? boxOf(selR, selC) : -1;
+    var filled = 0;
+
+    for (var k = 0; k < 81; k++) {
+      var el = cells[k];
+      var v = board[k];
+      var r = Math.floor(k / 9), c = k % 9;
+      var cls = "cell" + (c === 2 || c === 5 ? " br" : "") + (r === 2 || r === 5 ? " bb" : "");
+      if (given[k]) cls += " given"; else if (v !== 0) cls += " user";
+      if (selected >= 0 && k !== selected && (r === selR || c === selC || boxOf(r, c) === selB)) cls += " peer";
+      if (focusNum !== 0 && v === focusNum && k !== selected) cls += " same";
+      if (v !== 0 && v !== solution[k]) cls += " wrong";
+      if (k === selected) cls += " selected";
+      el.className = cls;
+      if (v !== 0) {
+        el.textContent = v;
+        filled++;
+      } else if (notes[k].length) {
+        var html = '<span class="notes">';
+        for (var d = 1; d <= 9; d++) html += "<span>" + (notes[k].indexOf(d) >= 0 ? d : "") + "</span>";
+        html += "</span>";
+        el.innerHTML = html;
+      } else {
+        el.textContent = "";
+      }
+    }
+    // pad: remaining counts + used-up state
+    var counts = [0,0,0,0,0,0,0,0,0,0];
+    board.forEach(function(v){ if (v) counts[v]++; });
+    for (var d2 = 1; d2 <= 9; d2++) {
+      var rest = 9 - counts[d2];
+      var btn = padBtns[d2 - 1];
+      btn.querySelector(".rest").textContent = rest > 0 ? "あと" + rest : "完了";
+      btn.classList.toggle("used", rest <= 0);
+      btn.classList.toggle("armed", numberFirst && armedNumber === d2);
+    }
+    mistakesEl.textContent = mistakes;
+    hintsEl.textContent = hintCount;
+    progressEl.textContent = Math.round(filled / 81 * 100) + "%";
+  }
+
+  /* ---------- controls ---------- */
+  document.querySelectorAll(".seg button").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll(".seg button").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      newGame(b.getAttribute("data-diff"));
+    });
+  });
+  document.getElementById("newTop").addEventListener("click", function(){ newGame(difficulty); });
+  document.getElementById("newClear").addEventListener("click", function(){ newGame(difficulty); });
+  document.getElementById("closeClear").addEventListener("click", function(){ overlayEl.classList.remove("show"); });
+
+  document.getElementById("memoBtn").addEventListener("click", function(){
+    memoMode = !memoMode;
+    this.classList.toggle("on", memoMode);
+    this.setAttribute("aria-pressed", memoMode);
+    setHintline();
+  });
+  document.getElementById("firstBtn").addEventListener("click", function(){
+    numberFirst = !numberFirst;
+    armedNumber = 0;
+    this.classList.toggle("on", numberFirst);
+    this.setAttribute("aria-pressed", numberFirst);
+    setHintline();
+    render();
+  });
+  document.getElementById("eraseBtn").addEventListener("click", function(){
+    if (finished || selected < 0 || given[selected]) return;
+    if (board[selected] === 0 && notes[selected].length === 0) return;
+    snapshot();
+    board[selected] = 0;
+    notes[selected] = [];
+    render();
+  });
+  document.getElementById("undoBtn").addEventListener("click", function(){
+    if (finished || !history.length) return;
+    var s = history.pop();
+    board = s.board;
+    notes = s.notes;
+    this.disabled = history.length === 0;
+    render();
+  });
+  document.getElementById("hintBtn").addEventListener("click", function(){
+    if (finished) return;
+    var idx = selected;
+    if (idx < 0 || given[idx] || board[idx] === solution[idx]) {
+      idx = -1;
+      for (var k = 0; k < 81; k++) if (board[k] !== solution[k]) { idx = k; break; }
+      if (idx < 0) return;
+    }
+    snapshot();
+    selected = idx;
+    board[idx] = solution[idx];
+    notes[idx] = [];
+    peersOf(idx).forEach(function(p){
+      var at = notes[p].indexOf(solution[idx]);
+      if (at >= 0) notes[p].splice(at, 1);
+    });
+    hintCount++;
+    render();
+    cells[idx].classList.remove("pop");
+    void cells[idx].offsetWidth;
+    cells[idx].classList.add("pop");
+    checkClear();
+  });
+
+  // physical keyboard support (desktop convenience)
+  document.addEventListener("keydown", function(e){
+    if (e.key >= "1" && e.key <= "9") { onPadTap(parseInt(e.key, 10)); }
+    else if (e.key === "Backspace" || e.key === "Delete") { document.getElementById("eraseBtn").click(); }
+    else if (selected >= 0 && e.key.indexOf("Arrow") === 0) {
+      var r = Math.floor(selected / 9), c = selected % 9;
+      if (e.key === "ArrowUp") r = Math.max(0, r - 1);
+      if (e.key === "ArrowDown") r = Math.min(8, r + 1);
+      if (e.key === "ArrowLeft") c = Math.max(0, c - 1);
+      if (e.key === "ArrowRight") c = Math.min(8, c + 1);
+      selected = r * 9 + c;
+      render();
+      e.preventDefault();
+    }
+  });
+
+  /* ---------- stats view ---------- */
+  var gameView = document.querySelector(".app");
+  var statsView = document.getElementById("statsView");
+  var resetOverlay = document.getElementById("resetOverlay");
+
+  function renderStats(){
+    var totalClears = 0, totalPlays = 0;
+    ["easy", "normal", "hard"].forEach(function(d){
+      totalClears += stats.per[d].clears;
+      totalPlays += stats.per[d].plays;
+    });
+    document.getElementById("ovClears").textContent = totalClears;
+    document.getElementById("ovPlayTime").textContent = fmt(stats.totalPlaySec);
+    document.getElementById("ovStreak").textContent = stats.streak;
+    document.getElementById("ovBestStreak").textContent = stats.bestStreak;
+    document.getElementById("ovHints").textContent = stats.totalHints;
+    document.getElementById("ovPlays").textContent = totalPlays;
+    document.getElementById("ovEmpty").style.display = totalClears === 0 ? "block" : "none";
+
+    var html = "";
+    ["easy", "normal", "hard"].forEach(function(d){
+      var s = stats.per[d];
+      var rate = s.plays > 0 ? Math.round(s.clears / s.plays * 100) + "%" : "—";
+      var avg = s.clears > 0 ? fmt(Math.round(s.clearTimeSum / s.clears)) : "—";
+      var best = s.clears > 0 ? fmt(s.bestTime) : "—";
+      var avgMist = s.clears > 0 ? (Math.round(s.mistakeSum / s.clears * 10) / 10) : "—";
+      html += '<div class="stat-card"><h3>' + DIFF_LABEL[d] +
+        '<span class="plays">プレイ ' + s.plays + ' 回</span></h3>' +
+        '<div class="stat-grid">' +
+        '<div class="cellstat"><b>' + s.clears + ' 回</b><span>クリア回数</span></div>' +
+        '<div class="cellstat"><b>' + rate + '</b><span>クリア率</span></div>' +
+        '<div class="cellstat"><b>' + avg + '</b><span>平均クリア時間</span></div>' +
+        '<div class="cellstat"><b>' + best + '</b><span>最短クリア時間</span></div>' +
+        '<div class="cellstat"><b>' + avgMist + '</b><span>クリア時の平均ミス数</span></div>' +
+        '<div class="cellstat"><b>' + s.hintSum + ' 回</b><span>ヒント使用回数</span></div>' +
+        '</div></div>';
+    });
+    document.getElementById("levelCards").innerHTML = html;
+  }
+
+  document.getElementById("statsBtn").addEventListener("click", function(){
+    renderStats();
+    gameView.style.display = "none";
+    statsView.style.display = "";
+  });
+  document.getElementById("backBtn").addEventListener("click", function(){
+    statsView.style.display = "none";
+    gameView.style.display = "";
+  });
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    resetOverlay.classList.add("show");
+  });
+  document.getElementById("resetNo").addEventListener("click", function(){
+    resetOverlay.classList.remove("show");
+  });
+  document.getElementById("resetYes").addEventListener("click", function(){
+    stats = blankStats();
+    saveStats();
+    resetOverlay.classList.remove("show");
+    renderStats();
+  });
+
+  newGame("easy", true);
+})();
+</script>
+</body>
+</html>
