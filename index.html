@@ -75,8 +75,8 @@
   .app{
     height:100dvh;max-width:520px;margin:0 auto;
     display:flex;flex-direction:column;
-    padding:calc(8px + env(safe-area-inset-top)) 12px calc(8px + env(safe-area-inset-bottom));
-    gap:8px;
+    padding:calc(6px + env(safe-area-inset-top)) 12px calc(6px + env(safe-area-inset-bottom));
+    gap:6px;
   }
   /* ---------- header ---------- */
   header{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -130,9 +130,9 @@
   .status .item{display:flex;align-items:center;gap:5px}
   .dot-mistake b{color:var(--wrong)}
   /* ---------- board ---------- */
-  .board-wrap{display:flex;justify-content:center;align-items:center;flex:1 1 auto;min-height:0;padding:4px 0 6px;overflow:hidden}
+  .board-wrap{display:flex;justify-content:center;align-items:center;flex:1 1 auto;min-height:0;padding:2px 0 4px;overflow:hidden}
   .board{
-    width:min(100%, calc(100dvh - 350px));
+    width:min(100%, calc(100dvh - 324px));
     max-height:100%;
     min-width:0;
     aspect-ratio:1/1;background:var(--cell-bg);
@@ -142,15 +142,15 @@
     flex-shrink:1;
   }
   @media (max-height:700px){
-    .board{width:min(100%, calc(100dvh - 332px))}
-    .pad button{height:50px;min-height:50px}
-    .pad button .num{font-size:21px}
-    .pad-row.bottom{margin-top:-17px}
+    .board{width:min(100%, calc(100dvh - 308px))}
+    .pad button{height:44px;min-height:44px}
+    .pad button .num{font-size:19px}
+    .pad-row.bottom{margin-top:-15px}
   }
   @media (max-height:600px){
-    .board{width:min(100%, calc(100dvh - 320px))}
-    .pad button{height:46px;min-height:46px}
-    .pad button .num{font-size:19px}
+    .board{width:min(100%, calc(100dvh - 296px))}
+    .pad button{height:40px;min-height:40px}
+    .pad button .num{font-size:17px}
   }
   .cell{
     position:relative;display:flex;align-items:center;justify-content:center;
@@ -196,17 +196,17 @@
   /* 上段（奇数）は逆さ家形＝四角の下に三角、下段（偶数）は通常の家形＝四角の上に三角。
      下段を半マスずらして段を詰めることで、上段の下向き三角が下段の屋根と屋根の
      谷間に嵌まる。左から右へ読むと 1→9 の順になる。 */
-  .pad{display:flex;flex-direction:column;margin-top:2px;padding:2px 1px 4px}
+  .pad{display:flex;flex-direction:column;margin-top:0;padding:1px 1px 2px}
   .pad-row{display:flex;gap:7px}
   .pad-row.top{position:relative;z-index:2}
-  .pad-row.bottom{position:relative;z-index:1;margin-top:-20px;padding:0 calc(10% + 1px)}
+  .pad-row.bottom{position:relative;z-index:1;margin-top:-18px;padding:0 calc(10% + 1px)}
   /* 家形はボタン本体の clip-path で描く（当たり判定も家形に沿うので、段を
      重ねても三角の横の透明部分は下の段のボタンにタップが抜ける）。
      枠線は clip-path では描けないため、本体の濃色を外形、内側の .face を
      2px 小さい同じ家形にして、色の差で枠相当の輪郭を作る。 */
   .pad button{
     position:relative;flex:1 1 0;min-width:0;
-    height:56px;min-height:56px;
+    height:48px;min-height:48px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
     background:var(--line-strong);
     transition:transform .08s,opacity .12s,background .12s;
@@ -217,19 +217,17 @@
   }
   .pad button.house-down,.pad button.house-down .face{clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)}
   .pad button.house-up,.pad button.house-up .face{clip-path:polygon(50% 0,100% 40%,100% 100%,0 100%,0 40%)}
-  .pad button.house-down{padding:2px 0 16px}
-  .pad button.house-up{padding:16px 0 2px}
-  .pad button .num{position:relative;z-index:1;font-size:24px;font-weight:800;line-height:1.05;color:var(--accent)}
-  .pad button .rest{position:relative;z-index:1;font-size:9px;color:var(--ink-soft);font-variant-numeric:tabular-nums;line-height:1.15}
+  .pad button.house-down{padding:2px 0 13px}
+  .pad button.house-up{padding:13px 0 2px}
+  .pad button .num{position:relative;z-index:1;font-size:22px;font-weight:800;line-height:1.05;color:var(--accent)}
+  .pad button:disabled{opacity:.45}
   .pad button:focus-visible .face{background:var(--hl-same)}
   .pad button.armed{background:var(--accent)}
   .pad button.armed .face{background:var(--accent)}
   .pad button.armed .num{color:#fff}
-  .pad button.armed .rest{color:rgba(255,255,255,.85)}
   .pad button.used{opacity:.55}
   .pad button.used .face{background:var(--pad-used)}
   .pad button.used .num{color:var(--pad-used-ink)}
-  .pad button.used .rest{color:var(--pad-used-ink)}
   /* ---------- clear overlay ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(10,14,20,.55);backdrop-filter:blur(3px);
@@ -263,7 +261,7 @@
     <h1>数独<span> Sudoku</span></h1>
     <div class="head-btns">
       <button class="stats-btn" id="statsBtn" type="button">📊 成績</button>
-      <button class="new-btn" id="newTop" type="button">＋ 新しいゲーム</button>
+      <button class="new-btn" id="newTop" type="button">ゲームをはじめる</button>
     </div>
   </header>
 
@@ -399,7 +397,7 @@
       b.type = "button";
       var odd = num % 2 === 1;
       b.className = odd ? "house-down" : "house-up";
-      b.innerHTML = '<span class="face"></span><span class="num">' + num + '</span><span class="rest">あと9</span>';
+      b.innerHTML = '<span class="face"></span><span class="num">' + num + '</span>';
       b.setAttribute("aria-label", "数字" + num);
       b.addEventListener("click", function(){ onPadTap(num); });
       (odd ? padTop : padBottom).appendChild(b);
@@ -562,6 +560,14 @@
     document.getElementById("undoBtn").disabled = false;
   }
 
+  function setControlsEnabled(on){
+    cells.forEach(function(el){ el.disabled = !on; });
+    padBtns.forEach(function(b){ b.disabled = !on; });
+    ["eraseBtn", "memoBtn", "hintBtn", "firstBtn"].forEach(function(id){
+      document.getElementById(id).disabled = !on;
+    });
+  }
+
   function newGame(diff, initial){
     // abandoning an unfinished game: bank its elapsed time and break the streak
     if (!initial && started && !finished) {
@@ -588,6 +594,8 @@
       timerEl.textContent = "00:00";
       overlayEl.classList.remove("show");
       loadingEl.classList.remove("show");
+      document.getElementById("newTop").textContent = "＋ 新しいゲーム";
+      setControlsEnabled(true);
       render();
       startTimer();
     }, 30);
@@ -603,7 +611,7 @@
   }
 
   function onCellTap(idx){
-    if (finished) return;
+    if (!started || finished) return;
     if (numberFirst && armedNumber && !given[idx]) {
       selected = idx;
       placeNumber(idx, armedNumber, true);
@@ -614,7 +622,7 @@
   }
 
   function onPadTap(num){
-    if (finished) return;
+    if (!started || finished) return;
     if (numberFirst) {
       armedNumber = (armedNumber === num) ? 0 : num;
       render();
@@ -735,7 +743,6 @@
     for (var d2 = 1; d2 <= 9; d2++) {
       var rest = 9 - counts[d2];
       var btn = padBtns[d2 - 1];
-      btn.querySelector(".rest").textContent = rest > 0 ? "あと" + rest : "完了";
       btn.classList.toggle("used", rest <= 0);
       btn.classList.toggle("armed", numberFirst && armedNumber === d2);
     }
@@ -749,7 +756,8 @@
     b.addEventListener("click", function(){
       document.querySelectorAll(".seg button").forEach(function(x){ x.classList.remove("on"); });
       b.classList.add("on");
-      newGame(b.getAttribute("data-diff"));
+      if (started) newGame(b.getAttribute("data-diff"));
+      else difficulty = b.getAttribute("data-diff");
     });
   });
   document.getElementById("newTop").addEventListener("click", function(){ newGame(difficulty); });
@@ -769,7 +777,7 @@
     render();
   });
   document.getElementById("eraseBtn").addEventListener("click", function(){
-    if (finished || selected < 0 || given[selected]) return;
+    if (!started || finished || selected < 0 || given[selected]) return;
     if (board[selected] === 0 && notes[selected].length === 0) return;
     snapshot();
     board[selected] = 0;
@@ -785,7 +793,7 @@
     render();
   });
   document.getElementById("hintBtn").addEventListener("click", function(){
-    if (finished) return;
+    if (!started || finished) return;
     var idx = selected;
     if (idx < 0 || given[idx] || board[idx] === solution[idx]) {
       idx = -1;
@@ -886,7 +894,16 @@
     renderStats();
   });
 
-  newGame("easy", true);
+  // idle state: no puzzle and no timer until 「ゲームをはじめる」 is pressed
+  (function initIdle(){
+    solution = new Array(81).fill(0);
+    board = new Array(81).fill(0);
+    given = new Array(81).fill(false);
+    notes = Array.from({length: 81}, function(){ return []; });
+    setControlsEnabled(false);
+    document.getElementById("undoBtn").disabled = true;
+    render();
+  })();
 })();
 </script>
 </body>
