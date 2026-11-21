@@ -106,6 +106,11 @@
   .overall-grid .cellstat span{font-size:11px;color:var(--ink-soft)}
   .streak-now{color:var(--accent)}
   .empty-note{color:var(--ink-soft);font-size:13px;text-align:center;padding:6px 0 0;margin:0}
+  /* ---------- settings panel (in stats view) ---------- */
+  .setting-group + .setting-group{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+  .setting-label{margin:0 0 8px;font-size:14px;font-weight:800}
+  .setting-note{margin:8px 0 0;font-size:12px;color:var(--ink-soft);line-height:1.55}
+  .settings-seg button{font-size:13px;padding:0 4px}
   .stats-foot{margin-top:auto;padding-top:6px}
   .stats-note{font-size:11.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 10px}
   .reset-btn{
@@ -130,7 +135,24 @@
   .status .item{display:flex;align-items:center;gap:5px}
   .dot-mistake b{color:var(--wrong)}
   /* ---------- board ---------- */
-  .board-wrap{display:flex;justify-content:center;align-items:center;flex:1 1 auto;min-height:0;padding:2px 0 4px;overflow:hidden}
+  .board-wrap{position:relative;display:flex;justify-content:center;align-items:center;flex:1 1 auto;min-height:0;padding:2px 0 4px;overflow:hidden}
+  .board-flash{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(100%, calc(100dvh - 324px));aspect-ratio:1/1;max-height:100%;
+    background:#fff;opacity:0;pointer-events:none;border-radius:6px;z-index:3;
+  }
+  .board-flash.go{animation:flashAnim .45s ease-out}
+  @keyframes flashAnim{0%{opacity:0}25%{opacity:.55}100%{opacity:0}}
+  /* clear celebration B: board wave — delays come from --wave-delay per cell.
+     Deliberately NOT shortened under prefers-reduced-motion: on devices with
+     Reduce Motion on, a shortened branch made the wave finish instantly. */
+  .board.waving .cell{animation:wavePop .5s ease-in-out;animation-delay:var(--wave-delay,0ms)}
+  @keyframes wavePop{
+    0%{transform:scale(1);background:var(--cell-bg);box-shadow:none}
+    35%{transform:scale(1.32);background:#ffd23f;box-shadow:0 0 0 2px #f5a623,0 4px 14px rgba(245,166,35,.55)}
+    70%{transform:scale(1.14);background:#8ecfff;box-shadow:0 0 0 1px #5aa9e6}
+    100%{transform:scale(1);background:var(--cell-bg);box-shadow:none}
+  }
   .board{
     width:min(100%, calc(100dvh - 324px));
     max-height:100%;
@@ -143,12 +165,14 @@
   }
   @media (max-height:700px){
     .board{width:min(100%, calc(100dvh - 308px))}
+    .board-flash{width:min(100%, calc(100dvh - 308px))}
     .pad button{height:44px;min-height:44px}
     .pad button .num{font-size:19px}
     .pad-row.bottom{margin-top:-15px}
   }
   @media (max-height:600px){
     .board{width:min(100%, calc(100dvh - 296px))}
+    .board-flash{width:min(100%, calc(100dvh - 296px))}
     .pad button{height:40px;min-height:40px}
     .pad button .num{font-size:17px}
   }
@@ -228,6 +252,11 @@
   .pad button.used{opacity:.55}
   .pad button.used .face{background:var(--pad-used)}
   .pad button.used .num{color:var(--pad-used-ink)}
+  /* ---------- clear celebrations A / D (canvas overlays) ---------- */
+  #confettiCanvas{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;display:none}
+  #fwOverlay{position:fixed;inset:0;background:rgba(8,12,28,.62);z-index:40;display:none;opacity:0;transition:opacity .45s ease}
+  #fwOverlay.show{opacity:1}
+  #fwCanvas{width:100%;height:100%;display:block}
   /* ---------- clear overlay ---------- */
   .overlay{
     position:fixed;inset:0;background:rgba(10,14,20,.55);backdrop-filter:blur(3px);
@@ -278,7 +307,7 @@
     <div class="item">進み具合 <b id="progress">0%</b></div>
   </div>
 
-  <div class="board-wrap"><div class="board" id="board" role="grid" aria-label="数独の盤面"></div></div>
+  <div class="board-wrap"><div class="board" id="board" role="grid" aria-label="数独の盤面"></div><div class="board-flash" id="boardFlash"></div></div>
 
   <div class="pad" id="pad" aria-label="数字パッド"></div>
 
@@ -313,8 +342,29 @@
 
     <div id="levelCards" style="display:flex;flex-direction:column;gap:10px"></div>
 
+    <div class="stat-card" id="settingsCard">
+      <h3>⚙️ 設定</h3>
+      <div class="setting-group">
+        <p class="setting-label">クリア演出</p>
+        <div class="seg settings-seg" id="celebSeg" role="group" aria-label="クリア演出">
+          <button type="button" data-celeb="A" class="on">A 紙吹雪</button>
+          <button type="button" data-celeb="B">B 盤面ウェーブ</button>
+          <button type="button" data-celeb="D">D 花火</button>
+        </div>
+        <p class="setting-note">クリア時に、選んだ演出が盤面の上で再生されてから結果画面が出ます。</p>
+      </div>
+      <div class="setting-group">
+        <p class="setting-label">数字の並び</p>
+        <div class="seg settings-seg" id="padSeg" role="group" aria-label="数字の並び">
+          <button type="button" data-pad="lr" class="on">左→右</button>
+          <button type="button" data-pad="tb">上段→下段</button>
+        </div>
+        <p class="setting-note" id="padNote">左→右：上段 1・3・5・7・9 と下段 2・4・6・8 を互い違いに読む並びです。</p>
+      </div>
+    </div>
+
     <div class="stats-foot">
-      <p class="stats-note">※ 成績はこの端末のブラウザ（localStorage）に保存されます。ブラウザのデータを消去すると記録も消えます。<br>※ Safariでは「ホーム画面に追加」してから開くと、アドレスバーなしの全画面で遊べます。</p>
+      <p class="stats-note">※ 成績と設定はこの端末のブラウザ（localStorage）に保存されます。ブラウザのデータを消去すると記録も消えます。<br>※ Safariでは「ホーム画面に追加」してから開くと、アドレスバーなしの全画面で遊べます。</p>
       <button class="reset-btn" id="resetBtn" type="button">記録をリセット</button>
     </div>
   </div>
@@ -347,6 +397,10 @@
   </div>
 </div>
 
+<canvas id="confettiCanvas"></canvas>
+
+<div id="fwOverlay"><canvas id="fwCanvas"></canvas></div>
+
 <div class="loading" id="loading">問題を作成中…</div>
 
 <script>
@@ -364,9 +418,24 @@
   var overlayEl = document.getElementById("overlay");
   var loadingEl = document.getElementById("loading");
 
+  /* ---------- settings (localStorage) ---------- */
+  var SETTINGS_KEY = "sudoku-settings-v1";
+  var settings = { celebration: "A", padLayout: "lr" };
+  try {
+    var sRaw = localStorage.getItem(SETTINGS_KEY);
+    if (sRaw) {
+      var sParsed = JSON.parse(sRaw);
+      if (sParsed && ["A", "B", "D"].indexOf(sParsed.celebration) >= 0) settings.celebration = sParsed.celebration;
+      if (sParsed && (sParsed.padLayout === "lr" || sParsed.padLayout === "tb")) settings.padLayout = sParsed.padLayout;
+    }
+  } catch (e) { /* storage unavailable: fall back to defaults */ }
+  function saveSettings(){
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  }
+
   var cells = [];
   var padBtns = [];
-  var i, n;
+  var i;
 
   for (i = 0; i < 81; i++) {
     (function(idx){
@@ -376,6 +445,8 @@
       d.className = "cell" + (c === 2 || c === 5 ? " br" : "") + (r === 2 || r === 5 ? " bb" : "");
       d.setAttribute("role", "gridcell");
       d.setAttribute("aria-label", (r + 1) + "行" + (c + 1) + "列");
+      /* per-cell delay for the clear wave (B): 45ms per diagonal step */
+      d.style.setProperty("--wave-delay", ((r + c) * 45) + "ms");
       d.addEventListener("click", function(){ onCellTap(idx); });
       boardEl.appendChild(d);
       cells.push(d);
@@ -384,26 +455,42 @@
   var padTop = document.createElement("div");
   padTop.className = "pad-row top";
   padTop.setAttribute("role", "group");
-  padTop.setAttribute("aria-label", "奇数の数字（上段）");
   var padBottom = document.createElement("div");
   padBottom.className = "pad-row bottom";
   padBottom.setAttribute("role", "group");
-  padBottom.setAttribute("aria-label", "偶数の数字（下段）");
   padEl.appendChild(padTop);
   padEl.appendChild(padBottom);
-  for (n = 1; n <= 9; n++) {
-    (function(num){
+  /* Pad layout: only the number-to-position assignment changes.
+     "lr" (左→右): top 1,3,5,7,9 / bottom 2,4,6,8, read interleaved.
+     "tb" (上段→下段): top 1,2,3,4,5 / bottom 6,7,8,9, read row by row.
+     House shapes stay per row (top = house-down, bottom = house-up) and the
+     bottom row keeps its half-cell offset, so the interlock is unchanged.
+     padBtns stays indexed by number (padBtns[n-1] = button for n). */
+  function buildPad(){
+    padTop.innerHTML = "";
+    padBottom.innerHTML = "";
+    var tb = settings.padLayout === "tb";
+    var topNums = tb ? [1, 2, 3, 4, 5] : [1, 3, 5, 7, 9];
+    var bottomNums = tb ? [6, 7, 8, 9] : [2, 4, 6, 8];
+    padTop.setAttribute("aria-label", tb ? "数字（上段）" : "奇数の数字（上段）");
+    padBottom.setAttribute("aria-label", tb ? "数字（下段）" : "偶数の数字（下段）");
+    var byNum = {};
+    function makeBtn(num, isTop){
       var b = document.createElement("button");
       b.type = "button";
-      var odd = num % 2 === 1;
-      b.className = odd ? "house-down" : "house-up";
+      b.className = isTop ? "house-down" : "house-up";
       b.innerHTML = '<span class="face"></span><span class="num">' + num + '</span>';
       b.setAttribute("aria-label", "数字" + num);
       b.addEventListener("click", function(){ onPadTap(num); });
-      (odd ? padTop : padBottom).appendChild(b);
-      padBtns.push(b);
-    })(n);
+      byNum[num] = b;
+      return b;
+    }
+    topNums.forEach(function(num){ padTop.appendChild(makeBtn(num, true)); });
+    bottomNums.forEach(function(num){ padBottom.appendChild(makeBtn(num, false)); });
+    padBtns = [];
+    for (var k = 1; k <= 9; k++) padBtns.push(byNum[k]);
   }
+  buildPad();
 
   /* ---------- solver / generator ---------- */
   function shuffle(a){
@@ -576,6 +663,7 @@
       saveStats();
     }
     difficulty = diff;
+    stopCelebrationVisuals();
     loadingEl.classList.add("show");
     // let the loading label paint before the (brief) generation work
     setTimeout(function(){
@@ -682,6 +770,270 @@
     checkClear();
   }
 
+  /* ---------- clear celebrations (ported from the demo's final tuning) ----------
+     NOTE: the effects are NOT shortened for prefers-reduced-motion. An earlier
+     shortened branch broke them on devices with Reduce Motion on (fireworks
+     fired only once; the wave finished instantly), so they always run exactly
+     as designed. All timing derives from rAF timestamps only (single clock),
+     and physics are normalised to 60fps units so 120Hz screens don't run the
+     show at double speed. */
+  var celebSeq = 0;
+  function stopCelebrationVisuals(){
+    celebSeq++;
+    document.getElementById("confettiCanvas").style.display = "none";
+    var fw = document.getElementById("fwOverlay");
+    fw.classList.remove("show");
+    fw.style.display = "none";
+    boardEl.classList.remove("waving");
+    document.getElementById("boardFlash").classList.remove("go");
+  }
+  function playCelebration(done){
+    var seq = ++celebSeq;
+    function finish(){ if (seq === celebSeq) done(); }
+    if (settings.celebration === "B") playWave(finish, seq);
+    else if (settings.celebration === "D") playFireworks(finish, seq);
+    else playConfetti(finish, seq);
+  }
+
+  /* A: confetti — rain of 140 pieces + side cannons, about 2.5s */
+  function playConfetti(done, seq){
+    var cv = document.getElementById("confettiCanvas");
+    var ctx = cv.getContext("2d");
+    var W = cv.width = window.innerWidth;
+    var H = cv.height = window.innerHeight;
+    cv.style.display = "block";
+    var COLORS = ["#1668c4", "#f2b01e", "#e5484d", "#46a758", "#ff7ac6", "#7c5cd6", "#ff8a3d", "#12b5a5", "#ffd23f"];
+    var parts = [];
+    function makePiece(x, y, vx, vy, cannon){
+      return {
+        x: x, y: y, vx: vx, vy: vy, cannon: !!cannon,
+        w: 8 + Math.random() * 8,
+        h: 11 + Math.random() * 10,
+        sway: Math.random() * Math.PI * 2,
+        swaySpeed: 0.02 + Math.random() * 0.035,
+        rot: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.3,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        circle: Math.random() < 0.22,
+        streamer: Math.random() < 0.12
+      };
+    }
+    var N = 140;
+    for (var i = 0; i < N; i++) {
+      parts.push(makePiece(
+        Math.random() * W,
+        -30 - Math.random() * H * 0.7,
+        0, 1.8 + Math.random() * 2.8, false
+      ));
+    }
+    function cannonBurst(side){
+      var count = 46;
+      for (var j = 0; j < count; j++) {
+        var ang = (side < 0 ? -1 : 1);
+        parts.push(makePiece(
+          side < 0 ? -6 : W + 6,
+          H * (0.82 + Math.random() * 0.14),
+          ang * (2.2 + Math.random() * 5.2),
+          -(7.5 + Math.random() * 6.5), true
+        ));
+      }
+    }
+    var volleys = [0, 650];
+    var volleyIdx = 0;
+    var start = null;
+    var last = null;
+    var DURATION = 2500;
+    function frame(now){
+      if (seq !== celebSeq) { cv.style.display = "none"; return; }
+      if (start === null) { start = now; last = now; }
+      var t = now - start;
+      var dt = Math.min(3, Math.max(0.25, (now - last) / 16.667));
+      last = now;
+      while (volleyIdx < volleys.length && t >= volleys[volleyIdx]) {
+        cannonBurst(-1); cannonBurst(1);
+        volleyIdx++;
+      }
+      ctx.clearRect(0, 0, W, H);
+      var fade = t > DURATION - 600 ? Math.max(0, (DURATION - t) / 600) : 1;
+      ctx.globalAlpha = fade;
+      parts.forEach(function(p){
+        if (p.cannon) {
+          p.vy += 0.16 * dt;
+          var drag = Math.pow(0.992, dt);
+          p.vx *= drag; p.vy *= drag;
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          if (p.vy > 1.6) p.cannon = false;
+        } else {
+          p.y += p.vy * dt;
+          p.sway += p.swaySpeed * dt;
+          p.x += Math.sin(p.sway) * 1.6 * dt;
+        }
+        p.rot += p.vr * dt;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.color;
+        if (p.circle) {
+          ctx.beginPath(); ctx.arc(0, 0, p.w / 2, 0, Math.PI * 2); ctx.fill();
+        } else if (p.streamer) {
+          ctx.fillRect(-2, -p.h, 4, p.h * 2);
+        } else {
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * (0.35 + Math.abs(Math.sin(p.sway)) * 0.65));
+        }
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+      if (t < DURATION) {
+        requestAnimationFrame(frame);
+      } else {
+        ctx.clearRect(0, 0, W, H);
+        cv.style.display = "none";
+        done();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* B: board wave — 45ms per diagonal step, pop .5s, flash at the end.
+     Wave itself: 16 steps x 45ms + 500ms = about 1.2s total. */
+  function playWave(done, seq){
+    var flash = document.getElementById("boardFlash");
+    boardEl.classList.remove("waving");
+    flash.classList.remove("go");
+    void boardEl.offsetWidth;
+    boardEl.classList.add("waving");
+    var waveEnd = 16 * 45 + 500;
+    setTimeout(function(){ if (seq === celebSeq) flash.classList.add("go"); }, waveEnd - 60);
+    setTimeout(function(){
+      boardEl.classList.remove("waving");
+      flash.classList.remove("go");
+      if (seq === celebSeq) done();
+    }, waveEnd + 150);
+  }
+
+  /* D: fireworks — 5 launches, about 3.2s, short afterglow then fade out */
+  function playFireworks(done, seq){
+    var overlay = document.getElementById("fwOverlay");
+    var cv = document.getElementById("fwCanvas");
+    var ctx = cv.getContext("2d");
+    var W = cv.width = window.innerWidth;
+    var H = cv.height = window.innerHeight;
+    overlay.style.display = "block";
+    requestAnimationFrame(function(){ overlay.classList.add("show"); });
+
+    var HUES = [210, 45, 0, 130, 320, 275, 25, 170, 55, 300, 95, 190];
+    var rockets = [];
+    var sparks = [];
+    var launches = 5;
+    var launched = 0;
+    var start = null;
+    var last = null;
+    var lastLaunch = 0;
+
+    function launch(now){
+      var hue = HUES[launched % HUES.length];
+      rockets.push({
+        x: W * (0.12 + Math.random() * 0.76),
+        y: H + 6,
+        vy: -(H * 0.011 + Math.random() * H * 0.003),
+        targetY: H * (0.12 + Math.random() * 0.3),
+        hue: hue,
+        trail: []
+      });
+      launched++;
+      lastLaunch = now;
+    }
+    function explode(rk){
+      var rings = [
+        { n: 78, spMin: 3.4, spVar: 3.6, hueShift: 0 },
+        { n: 48, spMin: 1.2, spVar: 2.0, hueShift: 40 }
+      ];
+      rings.forEach(function(ring){
+        for (var i = 0; i < ring.n; i++) {
+          var a = (Math.PI * 2 * i) / ring.n + Math.random() * 0.18;
+          var sp = ring.spMin + Math.random() * ring.spVar;
+          sparks.push({
+            x: rk.x, y: rk.y,
+            vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+            life: 1, decay: 0.008 + Math.random() * 0.009,
+            hue: rk.hue + ring.hueShift + (Math.random() * 30 - 15),
+            size: 2 + Math.random() * 2.4,
+            trail: []
+          });
+        }
+      });
+    }
+    var DURATION = 3200;
+    function frame(now){
+      if (seq !== celebSeq) { overlay.classList.remove("show"); overlay.style.display = "none"; return; }
+      if (start === null) { start = now; last = now; launch(now); }
+      var t = now - start;
+      var dt = Math.min(3, Math.max(0.25, (now - last) / 16.667));
+      last = now;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.16)";
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+      if (launched < launches && now - lastLaunch > 520 && t < DURATION - 1100) launch(now);
+      rockets = rockets.filter(function(rk){
+        rk.trail.push({ x: rk.x, y: rk.y });
+        if (rk.trail.length > 7) rk.trail.shift();
+        rk.y += rk.vy * dt;
+        rk.vy += 0.045 * dt;
+        rk.trail.forEach(function(tp, ti){
+          ctx.globalAlpha = (ti + 1) / rk.trail.length * 0.5;
+          ctx.beginPath();
+          ctx.arc(tp.x, tp.y, 1.4 + ti * 0.18, 0, Math.PI * 2);
+          ctx.fillStyle = "hsl(" + rk.hue + ", 95%, 70%)";
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.arc(rk.x, rk.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "hsl(" + rk.hue + ", 95%, 76%)";
+        ctx.fill();
+        if (rk.y <= rk.targetY || rk.vy >= -0.5) { explode(rk); return false; }
+        return true;
+      });
+      sparks = sparks.filter(function(s){
+        s.trail.push({ x: s.x, y: s.y });
+        if (s.trail.length > 5) s.trail.shift();
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        s.vy += 0.028 * dt;
+        var sDrag = Math.pow(0.986, dt);
+        s.vx *= sDrag; s.vy *= sDrag;
+        s.life -= s.decay * dt;
+        if (s.life <= 0) return false;
+        s.trail.forEach(function(tp, ti){
+          ctx.globalAlpha = Math.max(0, s.life) * (ti + 1) / s.trail.length * 0.45;
+          ctx.beginPath();
+          ctx.arc(tp.x, tp.y, s.size * 0.7, 0, Math.PI * 2);
+          ctx.fillStyle = "hsl(" + s.hue + ", 95%, 62%)";
+          ctx.fill();
+        });
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fillStyle = "hsl(" + s.hue + ", 95%, 66%)";
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        return true;
+      });
+      /* end on the clock, not when the last spark dies: short afterglow,
+         then the overlay fades out over about 0.5s into the clear panel */
+      if (t < DURATION) {
+        requestAnimationFrame(frame);
+      } else {
+        overlay.classList.remove("show");
+        setTimeout(function(){
+          overlay.style.display = "none";
+          if (seq === celebSeq) done();
+        }, 480);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
   function checkClear(){
     for (var k = 0; k < 81; k++) if (board[k] !== solution[k]) return;
     finished = true;
@@ -702,7 +1054,7 @@
     document.getElementById("clearMistakes").textContent = mistakes;
     document.getElementById("clearDiff").textContent = DIFF_LABEL[difficulty];
     render();
-    setTimeout(function(){ overlayEl.classList.add("show"); }, 350);
+    playCelebration(function(){ overlayEl.classList.add("show"); });
   }
 
   /* ---------- render ---------- */
@@ -831,6 +1183,41 @@
       e.preventDefault();
     }
   });
+
+  /* ---------- settings panel ---------- */
+  var PAD_NOTES = {
+    lr: "左→右：上段 1・3・5・7・9 と下段 2・4・6・8 を互い違いに読む並びです。",
+    tb: "上段→下段：上段 1・2・3・4・5、下段 6・7・8・9 と段ごとに読む並びです。"
+  };
+  function applySettingsUI(){
+    document.querySelectorAll("#celebSeg button").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-celeb") === settings.celebration);
+    });
+    document.querySelectorAll("#padSeg button").forEach(function(b){
+      b.classList.toggle("on", b.getAttribute("data-pad") === settings.padLayout);
+    });
+    document.getElementById("padNote").textContent = PAD_NOTES[settings.padLayout];
+  }
+  document.querySelectorAll("#celebSeg button").forEach(function(b){
+    b.addEventListener("click", function(){
+      settings.celebration = b.getAttribute("data-celeb");
+      saveSettings();
+      applySettingsUI();
+    });
+  });
+  document.querySelectorAll("#padSeg button").forEach(function(b){
+    b.addEventListener("click", function(){
+      var v = b.getAttribute("data-pad");
+      if (settings.padLayout === v) return;
+      settings.padLayout = v;
+      saveSettings();
+      buildPad();
+      padBtns.forEach(function(btn){ btn.disabled = !started; });
+      applySettingsUI();
+      render();
+    });
+  });
+  applySettingsUI();
 
   /* ---------- stats view ---------- */
   var gameView = document.querySelector(".app");
